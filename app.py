@@ -10,12 +10,12 @@ import os
 app = Flask(__name__)
 
 # Set your TwelveLabs API key
-os.environ["TL_API_KEY"] = "tlk_1H3EKJB1AMAH8A26XNV073KGZT34"
+os.environ["TL_API_KEY"] = "API-KEY-HERE"
 client = TwelveLabs(api_key=os.getenv("TL_API_KEY"))
 
 client2 = OpenAI(
   base_url="https://openrouter.ai/api/v1",
-  api_key="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",
+  api_key="API-KEY-HERE",
 )
 
 # Your youtube_to_mp4 function
