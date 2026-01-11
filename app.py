@@ -210,6 +210,24 @@ HTML_PAGE = """
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
+        .file-label2 {
+            display: inline-block;
+            padding: 10px 15px;
+            background: #fff;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-label2:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
         .file-label:hover {
             transform: translateY(-3px);
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
@@ -355,7 +373,7 @@ HTML_PAGE = """
 <body>
     <header>
         <nav class="container">
-            <a href="VerifyAI.html" class="logo">
+            <a href="/verifyAI" class="logo">
                 <div class="logo-icon">✓</div>
                 VerifyAI
             </a>
@@ -383,11 +401,14 @@ HTML_PAGE = """
                 <p>Drag and drop your video file or click to browse (MP4 format)</p>
                 
                 <div class="file-input-wrapper">
-                    <input type="file" id="videoFile" class="file-input" accept=".mp4,video/mp4" onchange="handleVideoUpload()">
-                    <label for="videoFile" class="file-label">Choose Video File</label>
-                    <div id="fileName" class="file-name"></div>
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="file" name="videoFile" id="videoFile" class="file-input" accept=".mp4,video/mp4" onchange="handleVideoUpload()">
+                        <label for="videoFile" class="file-label2">Choose Video File</label>
+                        <div id="fileName" class="file-name"></div>
+                        
+                        <button type="submit" class="analyze-button show">Analyze Video</button>
+                    </form>
                 </div>
-
                 
                 <div class="divider">
                     <span>OR</span>
@@ -400,8 +421,6 @@ HTML_PAGE = """
                         <button class="file-label" type=submit style="padding: 15px 40px;">Analyze YouTube Video</button>
                     </form>
                 </div>
-
-                
 
                 <div id="statusMessage" class="status-message"></div>
             </div>
@@ -487,15 +506,32 @@ HTML_PAGE = """
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        url = request.form["url"]
-        print(f"Received URL: {url}")  # This prints in your VS Code terminal
+        # Get YouTube URL (can be empty)
+        url = request.form.get("url", "").strip()
+        # Get uploaded file (can be None)
+        uploaded_file = request.files.get("videoFile")
+
+        if not url and not uploaded_file:
+            return "<p>Error: Please provide a YouTube URL or upload a video file.</p>"
 
         try:
-            # Download video
-            mp4_path = youtube_to_mp4(url)
-            print("Downloaded video:", mp4_path)
+            # If YouTube URL is provided
+            if url:
+                print(f"Received URL: {url}")
+                mp4_path = youtube_to_mp4(url)
+                print("Downloaded video:", mp4_path)
 
-            # TwelveLabs processing (simplified for example)
+            # If an MP4 file is uploaded
+            elif uploaded_file:
+                # Save uploaded file to 'videos' directory
+                out_dir = "videos"
+                Path(out_dir).mkdir(exist_ok=True)
+                filename = f"{uuid.uuid4()}.mp4"
+                mp4_path = os.path.join(out_dir, filename)
+                uploaded_file.save(mp4_path)
+                print("Saved uploaded file:", mp4_path)
+
+            # TwelveLabs processing
             unique_index_name = f"videos_{uuid.uuid4()}"
             index = client.indexes.create(
                 index_name=unique_index_name,
@@ -529,6 +565,7 @@ def index():
             )
             print("Analysis result:\n", text.data)
 
+            # Delete local video after processing
             deleteMP4(mp4_path)
 
         except Exception as e:
@@ -536,6 +573,7 @@ def index():
             return f"<p>Error occurred: {e}</p>"
 
     return render_template_string(HTML_PAGE)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
