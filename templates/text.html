@@ -389,26 +389,39 @@
             charCount.textContent = `${count} characters`;
         }
 
-        function analyzeText() {
-            const textInput = document.getElementById('textInput');
-            const text = textInput.value.trim();
-            
+        async function analyzeText() {
+            const text = document.getElementById("textInput").value.trim();
+
             if (!text) {
-                showStatus('Please enter some text to analyze', 'error');
+                showStatus("Please enter text to analyze", "error");
                 return;
             }
 
-            if (text.length < 50) {
-                showStatus('Please enter at least 50 characters for meaningful analysis', 'error');
-                return;
-            }
+            showStatus("Analyzing text...", "processing");
 
-            showStatus('Analyzing text... Cross-referencing with trusted sources.', 'processing');
-            
-            // Simulate analysis (replace with actual API call)
-            setTimeout(() => {
-                showStatus('Analysis complete! Text has been fact-checked. (Demo mode - connect your backend for real analysis)', 'success');
-            }, 2500);
+            try {
+                const response = await fetch("/fact-check-text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    showStatus(result.error, "error");
+                    return;
+                }
+
+                showStatus(
+                    `Verdict: ${result.verdict} (${result.confidence}% confidence)\n${result.explanation}`,
+                    "success"
+                );
+
+            } catch (err) {
+                showStatus("Server error. Check console.", "error");
+                console.error(err);
+            }
         }
 
         function clearText() {

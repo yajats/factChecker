@@ -1,9 +1,10 @@
-from flask import Flask, request, render_template_string, render_template
+from flask import Flask, request, render_template_string, render_template, jsonify
 import subprocess
 from pathlib import Path
 import uuid
 import time
 from twelvelabs import TwelveLabs
+from openai import OpenAI
 import os
 
 app = Flask(__name__)
@@ -11,6 +12,11 @@ app = Flask(__name__)
 # Set your TwelveLabs API key
 os.environ["TL_API_KEY"] = "tlk_1H3EKJB1AMAH8A26XNV073KGZT34"
 client = TwelveLabs(api_key=os.getenv("TL_API_KEY"))
+
+client2 = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key="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",
+)
 
 # Your youtube_to_mp4 function
 def youtube_to_mp4(url, out_dir="videos", max_duration=600):
@@ -480,6 +486,52 @@ HTML_PAGE = """
 </body>
 </html>
 """
+
+@app.route("/fact-check-text", methods=["POST"])
+def fact_check_text():
+    data = request.json
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+
+    response = client2.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a professional political fact checker. "
+                    "Return your response STRICTLY in JSON with these fields:\n"
+                    "{\n"
+                    '  "verdict": "True | False | Misleading | Unverifiable",\n'
+                    '  "confidence": number from 0 to 100,\n'
+                    '  "explanation": "short explanation"\n'
+                    "}"
+                )
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ],
+        temperature=0.2
+    )
+
+    result = response.choices[0].message.content
+
+    # IMPORTANT: parse JSON safely
+    try:
+        import json
+        parsed = json.loads(result)
+    except Exception:
+        return jsonify({
+            "verdict": "Unclear",
+            "confidence": 0,
+            "explanation": result
+        })
+
+    return jsonify(parsed)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
