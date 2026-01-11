@@ -24,7 +24,7 @@ def youtube_to_mp4(url, out_dir="videos", max_duration=600):
         "--postprocessor-args", "ffmpeg: -movflags faststart",
         "--match-filter", f"duration < {max_duration}",
         "-o", output,
-        "--cookies", "/Users/yajatsharma/Downloads/factCheckerFR/cookies.txt",
+        "--cookies", "/Users/yajatsharma/Downloads/factChecker/cookies.txt",
         url
     ], check=True)
 
@@ -364,7 +364,6 @@ HTML_PAGE = """
                 <li><a href="/getStarted">Features</a></li>
                 <li><a href="/text">How It Works</a></li>
                 <li><a href="/aboutUs">About</a></li>
-                <li><a href="VerifyAI.html#contact">Contact</a></li>
             </ul>
         </nav>
     </header>
